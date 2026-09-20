@@ -72,3 +72,21 @@ EMAIL_FROM=<sender on a verified Resend domain>
 ```
 
 Do not put the Resend API key in source code or commit it to Git.
+
+## Subscription countdown and billing dates
+
+- Billing now shows the Stripe-backed next billing date from `current_period_end`.
+- An updating days/hours/minutes/seconds countdown is shown for active subscriptions.
+- If cancellation is scheduled, the same countdown is shown as paid-access end time instead of a renewal.
+- Free-trial banners now show a live countdown to `trial_expires_at`.
+- Trial and subscription dates are calculated in the browser from server-provided timestamps; the server remains the source of truth for entitlement enforcement.
+- The billing page displays the customer-facing `Basic` label for the internal `starter` plan.
+
+## Built-in professional quotation templates
+- Added five selectable built-in PDF quotation designs: Classic, Modern, Minimal, Executive, and Creative.
+- Added persistent `template_type` values and Alembic migration `0004_builtin_quote_templates`.
+- Existing `default` and `custom_docx` behavior remains backward compatible.
+- Added authenticated `/api/business-profile/template/style/{style}` endpoint.
+- Business page now shows five template previews and a Save settings action.
+- All built-in templates keep the same quote calculations, business data, logo, line items, taxes, totals, notes, terms, and signature data.
+- Custom DOCX templates remain available and take precedence when selected.

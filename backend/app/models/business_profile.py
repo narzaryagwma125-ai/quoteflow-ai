@@ -9,7 +9,7 @@ from app.db.base import Base
 
 CURRENCIES = ("USD", "CAD", "INR", "GBP", "AUD")
 
-TEMPLATE_TYPES = ("default", "custom_docx")
+TEMPLATE_TYPES = ("default", "classic", "modern", "minimal", "executive", "creative", "custom_docx")
 
 
 class LogoFile(Base):

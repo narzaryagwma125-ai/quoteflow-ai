@@ -80,7 +80,7 @@ class LogoResponse(BaseModel):
 class TemplateSettings(BaseModel):
     """Current quotation template configuration for a business profile."""
 
-    template_type: Literal["default", "custom_docx"]
+    template_type: Literal["classic", "modern", "minimal", "executive", "creative", "default", "custom_docx"]
     custom_docx_file_id: int | None = None
     custom_docx_filename: str = ""
     custom_docx_mime_type: str = ""

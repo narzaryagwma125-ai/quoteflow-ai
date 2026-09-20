@@ -11,7 +11,7 @@ def test_neon_url_strips_libpq_tls_options_and_enables_ssl():
 
     assert "sslmode" not in url.query
     assert "channel_binding" not in url.query
-    assert connect_args == {"ssl": True}
+    assert connect_args == {"ssl": "require"}
 
 
 def test_postgres_without_sslmode_defaults_to_tls():
@@ -51,4 +51,4 @@ def test_plain_postgresql_url_is_converted_to_asyncpg():
     assert url.drivername == "postgresql+asyncpg"
     assert "sslmode" not in url.query
     assert "channel_binding" not in url.query
-    assert connect_args == {"ssl": True}
+    assert connect_args == {"ssl": "require"}

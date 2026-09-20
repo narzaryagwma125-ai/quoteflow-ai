@@ -69,6 +69,15 @@ _STATUS_COLORS = {
 }
 
 
+_TEMPLATE_STYLES = {
+    "classic": {"primary": "#1e40af", "light": "#dbeafe", "grid": "#e2e8f0", "row": "#f8fafc"},
+    "modern": {"primary": "#0f766e", "light": "#ccfbf1", "grid": "#d1d5db", "row": "#f0fdfa"},
+    "minimal": {"primary": "#111827", "light": "#f3f4f6", "grid": "#d1d5db", "row": "#fafafa"},
+    "executive": {"primary": "#7c5a10", "light": "#f7edd0", "grid": "#d6d3d1", "row": "#faf8f2"},
+    "creative": {"primary": "#7c3aed", "light": "#ede9fe", "grid": "#ddd6fe", "row": "#faf5ff"},
+}
+
+
 # ── Canvas helpers ──────────────────────────────────────────────────────
 class NoCompressionCanvas(_pdf_canvas.Canvas):
     """Uncompressed streams so text stays searchable / selectable."""
@@ -153,9 +162,17 @@ def generate_quote_pdf(
     notes: str = "",
     terms: str = "",
     payment_instructions: str = "",
+    template_style: str = "classic",
 ) -> bytes:
     """Build a polished, A4, multi-page quotation PDF entirely in memory.
     This is the built-in default QuoteFlow template."""
+    template_style = "classic" if template_style == "default" else template_style
+    preset = _TEMPLATE_STYLES.get(template_style, _TEMPLATE_STYLES["classic"])
+    primary = colors.HexColor(preset["primary"])
+    primary_light = colors.HexColor(preset["light"])
+    grid = colors.HexColor(preset["grid"])
+    row_alt = colors.HexColor(preset["row"])
+
     buf = io.BytesIO()
     page_w, page_h = A4
     margin = 0.6 * inch
@@ -177,18 +194,18 @@ def generate_quote_pdf(
 
     # ── Styles ──
     styles = getSampleStyleSheet()
-    s_title = ParagraphStyle("QTitle", parent=styles["Normal"], fontSize=24, fontName="Helvetica-Bold", textColor=_PRIMARY, alignment=TA_RIGHT, spaceAfter=6)
+    s_title = ParagraphStyle("QTitle", parent=styles["Normal"], fontSize=24, fontName="Helvetica-Bold", textColor=primary, alignment=TA_RIGHT, spaceAfter=6)
     s_badge = ParagraphStyle("QBadge", parent=styles["Normal"], fontSize=9, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_CENTER)
     s_biz = ParagraphStyle("BizName", parent=styles["Normal"], fontSize=16, fontName="Helvetica-Bold", textColor=_TEXT, spaceAfter=3)
     s_detail = ParagraphStyle("Detail", parent=styles["Normal"], fontSize=8.5, textColor=_TEXT_MUTED, leading=12)
-    s_section = ParagraphStyle("Section", parent=styles["Normal"], fontSize=11, fontName="Helvetica-Bold", textColor=_PRIMARY, spaceBefore=12, spaceAfter=5)
+    s_section = ParagraphStyle("Section", parent=styles["Normal"], fontSize=11, fontName="Helvetica-Bold", textColor=primary, spaceBefore=12, spaceAfter=5)
     s_label = ParagraphStyle("Label", parent=styles["Normal"], fontSize=8, fontName="Helvetica-Bold", textColor=_TEXT_MUTED, spaceAfter=1)
     s_body = ParagraphStyle("Body", parent=styles["BodyText"], fontSize=9, leading=13, textColor=_TEXT)
     s_small = ParagraphStyle("Small", parent=styles["BodyText"], fontSize=8, leading=11, textColor=_TEXT_MUTED)
     s_cell = ParagraphStyle("Cell", parent=styles["Normal"], fontSize=8.5, leading=11, textColor=_TEXT)
     s_cell_r = ParagraphStyle("CellR", parent=styles["Normal"], fontSize=8.5, leading=11, textColor=_TEXT, alignment=TA_RIGHT)
     s_cell_b = ParagraphStyle("CellB", parent=styles["Normal"], fontSize=9, leading=11, textColor=_TEXT, fontName="Helvetica-Bold")
-    s_cell_rb = ParagraphStyle("CellRB", parent=styles["Normal"], fontSize=9, leading=11, textColor=_PRIMARY, fontName="Helvetica-Bold", alignment=TA_RIGHT)
+    s_cell_rb = ParagraphStyle("CellRB", parent=styles["Normal"], fontSize=9, leading=11, textColor=primary, fontName="Helvetica-Bold", alignment=TA_RIGHT)
     s_hdr = ParagraphStyle("Hdr", parent=styles["Normal"], fontSize=8.5, fontName="Helvetica-Bold", textColor=colors.white, leading=11)
     s_hdr_r = ParagraphStyle("HdrR", parent=styles["Normal"], fontSize=8.5, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_RIGHT, leading=11)
     s_meta_l = ParagraphStyle("MetaL", parent=styles["Normal"], fontSize=8, textColor=_TEXT_MUTED, leading=10)
@@ -230,7 +247,7 @@ def generate_quote_pdf(
     right: list = [Paragraph("QUOTATION", s_title)]
     badge = Table([[Paragraph(status_label, s_badge)]], colWidths=[1.4 * inch], rowHeights=[0.28 * inch])
     badge.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), _STATUS_COLORS.get(status, _PRIMARY)),
+        ("BACKGROUND", (0, 0), (-1, -1), _STATUS_COLORS.get(status, primary)),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("TOPPADDING", (0, 0), (-1, -1), 0),
@@ -256,7 +273,7 @@ def generate_quote_pdf(
     # Divider bar
     story.append(Spacer(1, 8))
     divider = Table([[""]], colWidths=[content_w], rowHeights=[2])
-    divider.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, 0), _PRIMARY), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+    divider.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, 0), primary), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
     story.append(divider)
     story.append(Spacer(1, 12))
 
@@ -299,14 +316,14 @@ def generate_quote_pdf(
             ])
         dtbl = Table([cells], colWidths=[col_w] * len(details))
         dtbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), _ROW_ALT),
+            ("BACKGROUND", (0, 0), (-1, -1), row_alt),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("TOPPADDING", (0, 0), (-1, -1), 6),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
             ("LEFTPADDING", (0, 0), (-1, -1), 8),
             ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-            ("BOX", (0, 0), (-1, -1), 0.5, _GRID),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, _GRID),
+            ("BOX", (0, 0), (-1, -1), 0.5, grid),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, grid),
         ]))
         story.append(dtbl)
         story.append(Spacer(1, 10))
@@ -365,8 +382,8 @@ def generate_quote_pdf(
 
     itbl = Table(rows, colWidths=widths, repeatRows=1)
     style_cmds = [
-        ("BACKGROUND", (0, 0), (-1, 0), _PRIMARY),
-        ("GRID", (0, 0), (-1, -1), 0.4, _GRID),
+        ("BACKGROUND", (0, 0), (-1, 0), primary),
+        ("GRID", (0, 0), (-1, -1), 0.4, grid),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 4.5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
@@ -374,7 +391,7 @@ def generate_quote_pdf(
         ("RIGHTPADDING", (0, 0), (-1, -1), 4),
     ]
     for i in range(2, len(rows), 2):
-        style_cmds.append(("BACKGROUND", (0, i), (-1, i), _ROW_ALT))
+        style_cmds.append(("BACKGROUND", (0, i), (-1, i), row_alt))
     itbl.setStyle(TableStyle(style_cmds))
     story.append(itbl)
     story.append(Spacer(1, 12))
@@ -394,12 +411,12 @@ def generate_quote_pdf(
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 4),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("BACKGROUND", (0, -1), (-1, -1), _PRIMARY_LIGHT),
-        ("LINEABOVE", (0, -1), (-1, -1), 1.2, _PRIMARY),
+        ("BACKGROUND", (0, -1), (-1, -1), primary_light),
+        ("LINEABOVE", (0, -1), (-1, -1), 1.2, primary),
         ("FONTSIZE", (0, -1), (-1, -1), 11),
     ]
     if len(trows) > 1:
-        tstyle.append(("LINEBELOW", (0, -2), (-1, -2), 0.25, _GRID))
+        tstyle.append(("LINEBELOW", (0, -2), (-1, -2), 0.25, grid))
     ttbl.setStyle(TableStyle(tstyle))
     story.append(ttbl)
 
@@ -425,7 +442,7 @@ def generate_quote_pdf(
     story.append(sig)
 
     story.append(Spacer(1, 18))
-    story.append(Paragraph("Thank you for your business!", ParagraphStyle("ThankYou", parent=s_body, fontName="Helvetica-Bold", fontSize=10.5, textColor=_PRIMARY, alignment=TA_CENTER)))
+    story.append(Paragraph("Thank you for your business!", ParagraphStyle("ThankYou", parent=s_body, fontName="Helvetica-Bold", fontSize=10.5, textColor=primary, alignment=TA_CENTER)))
     story.append(Spacer(1, 8))
     story.append(Paragraph(
         "This is a quotation only and is not a legally binding contract. "

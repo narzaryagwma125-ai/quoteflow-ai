@@ -13,10 +13,75 @@ from app.core.config import settings
 
 # Map internal plans to configured Stripe price IDs. Never accept price IDs from the frontend.
 PLAN_TO_PRICE_ID = {
+    # Customer-facing name is Basic; the internal key remains `starter` for DB compatibility.
     "starter": lambda: settings.stripe_starter_price_id,
     "pro": lambda: settings.stripe_pro_price_id,
     "business": lambda: settings.stripe_business_price_id,
 }
+
+# Required monthly INR prices in paise. These are checked against Stripe at checkout
+# so a misconfigured Price ID cannot silently charge the wrong plan amount.
+PLAN_PRICING = {
+    "starter": {"label": "Basic", "amount": 49900, "currency": "inr", "interval": "month"},
+    "pro": {"label": "Pro", "amount": 99900, "currency": "inr", "interval": "month"},
+    "business": {"label": "Business", "amount": 199900, "currency": "inr", "interval": "month"},
+}
+
+
+def plan_from_price_id(price_id: str | None) -> str:
+    """Map a configured Stripe price ID to an internal plan name."""
+    if price_id and price_id == settings.stripe_starter_price_id:
+        return "starter"
+    if price_id and price_id == settings.stripe_pro_price_id:
+        return "pro"
+    if price_id and price_id == settings.stripe_business_price_id:
+        return "business"
+    return ""
+
+
+def validate_stripe_price_for_plan(plan: str, price_id: str) -> None:
+    """Fail closed when a Stripe Price ID does not match the configured plan price.
+
+    This prevents an environment-variable mistake such as assigning the Basic ₹499
+    Price ID to STRIPE_PRO_PRICE_ID from charging the wrong amount.
+    """
+    expected = PLAN_PRICING.get(plan)
+    if not expected:
+        raise ValueError(f"Unknown plan '{plan}'.")
+    if not price_id:
+        raise ValueError(f"Stripe price ID for plan '{plan}' is not configured.")
+
+    configured_ids = [
+        settings.stripe_starter_price_id,
+        settings.stripe_pro_price_id,
+        settings.stripe_business_price_id,
+    ]
+    if len(set(configured_ids)) != len(configured_ids):
+        raise ValueError("Stripe plan Price IDs must be unique across Basic, Pro, and Business.")
+
+    try:
+        remote = stripe.Price.retrieve(price_id)
+    except stripe.error.StripeError as exc:
+        raise ValueError(f"Unable to validate Stripe price for {expected['label']}.") from exc
+
+    def get_value(obj, key, default=None):
+        return obj.get(key, default) if isinstance(obj, dict) else getattr(obj, key, default)
+
+    if get_value(remote, "id") != price_id:
+        raise ValueError(f"Stripe Price ID validation failed for {expected['label']}.")
+    if get_value(remote, "active") is not True:
+        raise ValueError(f"Stripe price for {expected['label']} is not active.")
+    if get_value(remote, "unit_amount") != expected["amount"]:
+        raise ValueError(
+            f"Stripe price mismatch for {expected['label']}: expected ₹{expected['amount'] / 100:.0f}/month."
+        )
+    if str(get_value(remote, "currency", "")).lower() != expected["currency"]:
+        raise ValueError(f"Stripe currency mismatch for {expected['label']}: expected INR.")
+
+    recurring = get_value(remote, "recurring") or {}
+    interval = get_value(recurring, "interval")
+    if interval != expected["interval"]:
+        raise ValueError(f"Stripe billing interval mismatch for {expected['label']}: expected monthly.")
 
 
 def plan_from_price_id(price_id: str | None) -> str:
@@ -61,6 +126,7 @@ def create_checkout_session(
     price_id = PLAN_TO_PRICE_ID[plan]()
     if not price_id:
         raise ValueError(f"Stripe price ID for plan '{plan}' is not configured.")
+    validate_stripe_price_for_plan(plan, price_id)
 
     meta = dict(metadata or {})
     meta["quoteflow_user_id"] = str(user_id)

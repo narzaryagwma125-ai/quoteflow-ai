@@ -10,6 +10,7 @@ Security:
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -35,6 +36,8 @@ from app.services.email import quote_response_email_body, send_email
 from app.services.pdf_render import render_quote_pdf
 
 router = APIRouter(prefix="/api/public/quotes", tags=["public-quotes"])
+
+logger = logging.getLogger("quoteflow.public_quotes")
 
 RESPOND_INELIGIBLE = ("draft", "expired", "cancelled")
 RESPOND_DONE = ("accepted", "rejected")
@@ -121,16 +124,25 @@ async def _respond(request: Request, token: str, payload: PublicQuoteRespond, ac
     quote.responded_by_email = payload.email or ""
     quote.responded_at = datetime.now(UTC)
 
-    # Notify the business owner (safe metadata only)
+    # Notify the business owner (safe metadata only). Email delivery is best
+    # effort: without a configured provider the notification is logged instead
+    # of failing the customer's accept/reject action.
     profile = (
         await db.execute(select(BusinessProfile).where(BusinessProfile.user_id == quote.user_id))
     ).scalar_one_or_none()
     if profile:
-        await send_email(
-            profile.email,
-            f"Quote {quote.quote_number} was {'accepted' if accept else 'declined'}",
-            quote_response_email_body(profile.email, quote.quote_number, payload.name, accept),
-        )
+        try:
+            await send_email(
+                profile.email,
+                f"Quote {quote.quote_number} was {'accepted' if accept else 'declined'}",
+                quote_response_email_body(profile.email, quote.quote_number, payload.name, accept),
+            )
+        except RuntimeError:
+            logger.info(
+                "EMAIL_CONSOLE_FALLBACK to=%r subject=%r",
+                profile.email,
+                f"Quote {quote.quote_number} was {'accepted' if accept else 'declined'}",
+            )
 
     await audit(
         db,

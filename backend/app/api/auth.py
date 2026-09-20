@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -45,6 +46,8 @@ from app.services.email import (
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
+logger = logging.getLogger("quoteflow.auth")
+
 EMAIL_VERIFY_TTL_MINUTES = 60 * 24  # 24h
 RESET_TTL_MINUTES = 30
 
@@ -67,7 +70,12 @@ def _clear_session_cookie(response: Response) -> None:
 
 async def _send_email_or_console(email: str, subject: str, body: tuple[str, str]) -> None:
     text, html = body
-    await send_email(email, subject, text, html)
+    try:
+        await send_email(email, subject, text, html)
+    except RuntimeError:
+        # Email is a convenience, not a hard dependency: when no email provider
+        # is configured the message is logged to the console/logger instead.
+        logger.info("EMAIL_CONSOLE_FALLBACK to=%r subject=%r", email, subject)
 
 
 @router.post("/signup", response_model=SessionResponse, status_code=201)

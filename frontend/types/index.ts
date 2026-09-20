@@ -60,8 +60,10 @@ export interface BusinessProfile {
   created_at: string;
 }
 
+export type BuiltinTemplateType = "classic" | "modern" | "minimal" | "executive" | "creative";
+
 export interface TemplateSettings {
-  template_type: "default" | "custom_docx";
+  template_type: BuiltinTemplateType | "default" | "custom_docx";
   custom_docx_file_id: number | null;
   custom_docx_filename: string;
   custom_docx_mime_type: string;

@@ -10,6 +10,8 @@ import { ErrorState } from "@/components/ErrorState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { SubscriptionCountdown } from "@/components/SubscriptionCountdown";
+import { TrialCountdown } from "@/components/TrialCountdown";
 import type { SubscriptionInfo } from "@/types";
 
 export default function BillingPage() {
@@ -82,6 +84,7 @@ export default function BillingPage() {
                 <p className="mt-1 text-brand-700">
                   Your trial includes 200 quote creations and 200 AI assists. Choose a plan any time to keep the benefits after it ends.
                 </p>
+                <TrialCountdown expiresAt={sub.trial_expires_at} />
               </div>
             ) : sub.trial_expired ? (
               <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
@@ -104,14 +107,20 @@ export default function BillingPage() {
             ) : null}
             <div className="grid gap-6 lg:grid-cols-2">
             <Card title="Current plan">
-              <p className="text-lg font-semibold capitalize">{sub.plan}</p>
+              <p className="text-lg font-semibold">{sub.plan === "starter" ? "Basic" : sub.plan === "pro" ? "Pro" : sub.plan === "business" ? "Business" : "Free"}</p>
               <p className="text-sm text-slate-500">{sub.status}</p>
               {sub.current_period_end && (
-                <p className="mt-2 text-sm text-slate-600">
-                  {sub.cancel_at_period_end
-                    ? `Access until ${formatDate(sub.current_period_end)}, then downgrade to Free.`
-                    : `Renews ${formatDate(sub.current_period_end)}.`}
-                </p>
+                <>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {sub.cancel_at_period_end
+                      ? `Access until ${formatDate(sub.current_period_end)}, then downgrade to Free.`
+                      : `Renews ${formatDate(sub.current_period_end)}.`}
+                  </p>
+                  <SubscriptionCountdown
+                    periodEnd={sub.current_period_end}
+                    cancelAtPeriodEnd={sub.cancel_at_period_end}
+                  />
+                </>
               )}
               <dl className="mt-4 space-y-2 text-sm">
                 <UsageRow

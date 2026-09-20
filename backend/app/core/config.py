@@ -136,6 +136,18 @@ class Settings(BaseSettings):
             )
             raise RuntimeError("Missing required production secrets. See README.md.")
 
+        stripe_price_ids = [
+            self.stripe_starter_price_id,
+            self.stripe_pro_price_id,
+            self.stripe_business_price_id,
+        ]
+        if len(set(stripe_price_ids)) != len(stripe_price_ids):
+            print(
+                "[FATAL] Production startup aborted: Stripe Basic/Pro/Business Price IDs must be unique.",
+                file=sys.stderr,
+            )
+            raise RuntimeError("Stripe Price IDs must be unique across all paid plans.")
+
 
 @lru_cache
 def get_settings() -> Settings:

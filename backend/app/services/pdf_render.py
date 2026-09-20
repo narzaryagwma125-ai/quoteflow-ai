@@ -191,6 +191,7 @@ def render_quote_pdf(
                 if effective_logo_bytes
                 else None
             ),
+            template_style=(profile.template_type if profile else "classic"),
         )
 
     pdf_bytes = None

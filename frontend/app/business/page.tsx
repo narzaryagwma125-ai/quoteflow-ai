@@ -10,7 +10,7 @@ import { Select } from "@/components/Select";
 import { ErrorState } from "@/components/ErrorState";
 import { Loading } from "@/components/Loading";
 import { api } from "@/lib/api";
-import type { BusinessProfile, TemplateSettings } from "@/types";
+import type { BusinessProfile, BuiltinTemplateType, TemplateSettings } from "@/types";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -75,7 +75,7 @@ export default function BusinessPage() {
   const [templateSaving, setTemplateSaving] = useState(false);
   const [templateUploading, setTemplateUploading] = useState(false);
   const [templateTesting, setTemplateTesting] = useState(false);
-  const [selectedType, setSelectedType] = useState<"default" | "custom_docx">("default");
+  const [selectedType, setSelectedType] = useState<BuiltinTemplateType | "custom_docx">("classic");
 
   const fields = useCallback((p: BusinessProfile | null) =>
     p
@@ -139,7 +139,7 @@ export default function BusinessPage() {
     try {
       const ts = await api<TemplateSettings>("/business-profile/template");
       setTemplate(ts);
-      setSelectedType(ts.template_type);
+      setSelectedType(ts.template_type === "default" ? "classic" : ts.template_type);
     } catch {
       // Profile may not exist yet; template state stays null.
     } finally {
@@ -290,7 +290,7 @@ export default function BusinessPage() {
     try {
       const ts = await api<TemplateSettings>("/business-profile/template", { method: "DELETE" });
       setTemplate(ts);
-      setSelectedType("default");
+      setSelectedType("classic");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete template.");
     } finally {
@@ -302,14 +302,14 @@ export default function BusinessPage() {
     setTemplateSaving(true);
     setError(null);
     try {
-      if (selectedType === "default") {
-        const ts = await api<TemplateSettings>("/business-profile/template/default", { method: "POST" });
-        setTemplate(ts);
-      } else {
+      if (selectedType === "custom_docx") {
         if (!template?.has_custom_template) {
           throw new Error("Upload a custom DOCX template first.");
         }
         const ts = await api<TemplateSettings>("/business-profile/template/custom-docx", { method: "POST" });
+        setTemplate(ts);
+      } else {
+        const ts = await api<TemplateSettings>(`/business-profile/template/style/${selectedType}`, { method: "POST" });
         setTemplate(ts);
       }
     } catch (err) {
@@ -469,40 +469,54 @@ export default function BusinessPage() {
               <Loading />
             ) : (
               <div className="space-y-4">
-                {/* ── Template type selection ───────────────────────── */}
-                <div className="space-y-3">
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="template_type"
-                      className="mt-0.5 h-4 w-4 text-blue-600 border-slate-300 focus:ring-blue-500"
-                      checked={selectedType === "default"}
-                      onChange={() => setSelectedType("default")}
-                    />
-                    <div>
-                      <span className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
-                        QuoteFlow Default Template
-                      </span>
-                      <p className="text-xs text-slate-500 mt-0.5">Use the built-in professional quotation layout</p>
-                    </div>
-                  </label>
-
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="template_type"
-                      className="mt-0.5 h-4 w-4 text-blue-600 border-slate-300 focus:ring-blue-500"
-                      checked={selectedType === "custom_docx"}
-                      onChange={() => setSelectedType("custom_docx")}
-                    />
-                    <div>
-                      <span className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
-                        Use Custom DOCX Template
-                      </span>
-                      <p className="text-xs text-slate-500 mt-0.5">Fill your own .docx with QuoteFlow data (max 5 MB)</p>
-                    </div>
-                  </label>
+                {/* ── Built-in professional template selection ───────── */}
+                <div>
+                  <p className="mb-3 text-sm font-semibold text-slate-900">Professional quote templates</p>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {[
+                      { id: "classic", name: "Classic", desc: "Traditional corporate layout", tone: "bg-blue-50 border-blue-200 text-blue-700" },
+                      { id: "modern", name: "Modern", desc: "Clean teal business style", tone: "bg-teal-50 border-teal-200 text-teal-700" },
+                      { id: "minimal", name: "Minimal", desc: "Elegant black & white", tone: "bg-slate-50 border-slate-300 text-slate-700" },
+                      { id: "executive", name: "Executive", desc: "Premium gold business style", tone: "bg-amber-50 border-amber-200 text-amber-700" },
+                      { id: "creative", name: "Creative", desc: "Distinctive purple accent", tone: "bg-violet-50 border-violet-200 text-violet-700" },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedType(item.id as BuiltinTemplateType)}
+                        className={`rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm ${selectedType === item.id ? `ring-2 ring-slate-900 ${item.tone}` : "border-slate-200 bg-white"}`}
+                      >
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className={`inline-flex rounded-md border px-2 py-1 text-[11px] font-semibold ${item.tone}`}>{item.name}</span>
+                          {selectedType === item.id && <span className="text-xs font-semibold text-slate-900">Selected</span>}
+                        </div>
+                        <div className="mb-2 h-16 rounded-lg border border-slate-200 bg-white p-2">
+                          <div className="h-2 w-2/5 rounded bg-slate-800" />
+                          <div className="mt-2 h-1.5 w-full rounded bg-slate-100" />
+                          <div className="mt-1.5 h-1.5 w-4/5 rounded bg-slate-100" />
+                          <div className="mt-3 ml-auto h-2 w-1/3 rounded bg-slate-200" />
+                        </div>
+                        <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{item.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs text-slate-500">All five are built into QuoteFlow and apply instantly to generated PDFs. Your logo, business details, line items and totals remain unchanged.</p>
                 </div>
+
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="template_type"
+                    className="mt-0.5 h-4 w-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                    checked={selectedType === "custom_docx"}
+                    onChange={() => setSelectedType("custom_docx")}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors">Use Custom DOCX Template</span>
+                    <p className="text-xs text-slate-500 mt-0.5">Fill your own .docx with QuoteFlow data (max 5 MB)</p>
+                  </div>
+                </label>
 
                 {/* ── Upload + sample buttons ──────────────────────── */}
                 <div className="pl-7 border-l-2 border-slate-100 space-y-3">
@@ -579,7 +593,7 @@ export default function BusinessPage() {
                     <Button size="sm" onClick={() => void saveTemplateSettings()} loading={templateSaving}>
                       Save settings
                     </Button>
-                    {selectedType !== (template?.template_type ?? "default") && (
+                    {selectedType !== ((template?.template_type === "default" ? "classic" : template?.template_type) ?? "classic") && (
                       <span className="text-xs text-slate-400 italic">You have unsaved template settings.</span>
                     )}
                   </div>
@@ -592,7 +606,7 @@ export default function BusinessPage() {
 
                   {(!template || !template.has_custom_template) && template?.template_type !== "custom_docx" && (
                     <p className="text-xs text-slate-400 italic">
-                      No custom DOCX template uploaded. The default QuoteFlow template will be used for all quotation PDFs.
+                      No custom DOCX template uploaded. The selected professional template will be used for all quotation PDFs.
                     </p>
                   )}
                 </div>
