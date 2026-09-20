@@ -1,0 +1,43 @@
+# --- General ---
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.local
+.env.*.local
+!.env.example
+node_modules/
+dist/
+build/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.vscode/
+.idea/
+
+# --- Backend ---
+backend/.env
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/*.db
+backend/*.sqlite3
+
+# --- Frontend ---
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/next-env.d.ts
+
+# --- Secrets ---
+*.pem
+*.key
+secrets/
+backend/quoteflow_backend.egg-info/
+uploads/*
+!uploads/.gitkeep
