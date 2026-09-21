@@ -248,8 +248,28 @@ async def set_default_template(
 ) -> TemplateSettings:
     verify_origin(request)
     profile = await _get_profile(db, user.id)
-    profile.template_type = "default"
-    await audit(db, "business_profile.template_set_default", user_id=user.id, entity_type="business_profile")
+    profile.template_type = "classic"
+    await audit(db, "business_profile.template_set_classic", user_id=user.id, entity_type="business_profile")
+    await db.commit()
+    await db.refresh(profile)
+    return build_settings(profile)
+
+
+@router.post("/style/{style}", response_model=TemplateSettings)
+async def set_builtin_template_style(
+    style: str,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TemplateSettings:
+    """Select one of the five built-in professional PDF quotation designs."""
+    verify_origin(request)
+    style = style.lower().strip()
+    if style not in BUILTIN_TEMPLATE_TYPES:
+        raise not_found("Unknown quotation template style.")
+    profile = await _get_profile(db, user.id)
+    profile.template_type = style
+    await audit(db, f"business_profile.template_set_{style}", user_id=user.id, entity_type="business_profile")
     await db.commit()
     await db.refresh(profile)
     return build_settings(profile)

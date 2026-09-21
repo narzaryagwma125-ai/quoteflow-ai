@@ -195,7 +195,7 @@ def render_quote_pdf(
         )
 
     pdf_bytes = None
-    used_template = "default"
+    used_template = profile.template_type if profile and profile.template_type != "custom_docx" else "classic"
 
     if profile and profile.template_type == "custom_docx" and profile.custom_docx_file_id:
         filled = fill_custom_docx(profile, quote, customer, tax_rate_percent)

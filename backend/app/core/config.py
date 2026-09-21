@@ -116,9 +116,10 @@ class Settings(BaseSettings):
             "GEMINI_API_KEY": self.gemini_api_key,
             "STRIPE_SECRET_KEY": self.stripe_secret_key,
             "STRIPE_WEBHOOK_SECRET": self.stripe_webhook_secret,
+            # Basic and Pro are enabled plans. Business can remain unconfigured
+            # until its Stripe USD $24/month Price is created.
             "STRIPE_STARTER_PRICE_ID": self.stripe_starter_price_id,
             "STRIPE_PRO_PRICE_ID": self.stripe_pro_price_id,
-            "STRIPE_BUSINESS_PRICE_ID": self.stripe_business_price_id,
         }
         if self.email_verification_required:
             required.update({
@@ -137,9 +138,13 @@ class Settings(BaseSettings):
             raise RuntimeError("Missing required production secrets. See README.md.")
 
         stripe_price_ids = [
-            self.stripe_starter_price_id,
-            self.stripe_pro_price_id,
-            self.stripe_business_price_id,
+            price_id
+            for price_id in (
+                self.stripe_starter_price_id,
+                self.stripe_pro_price_id,
+                self.stripe_business_price_id,
+            )
+            if price_id
         ]
         if len(set(stripe_price_ids)) != len(stripe_price_ids):
             print(

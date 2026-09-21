@@ -94,10 +94,10 @@ export default function BillingPage() {
                 </p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   <Button onClick={() => void checkout("starter")} loading={busy}>
-                    Upgrade to Basic (₹499/mo)
+                    Upgrade to Basic ($6/mo)
                   </Button>
                   <Button variant="secondary" onClick={() => void checkout("pro")} loading={busy}>
-                    Upgrade to Pro (₹999/mo)
+                    Upgrade to Pro ($12/mo)
                   </Button>
                   <Button variant="secondary" onClick={() => void checkout("business")} loading={busy}>
                     Upgrade to Business (unlimited)
@@ -139,10 +139,10 @@ export default function BillingPage() {
                   <p className="text-sm text-slate-600">Upgrade to unlock more monthly quotes and AI assists.</p>
                   <div className="flex flex-wrap gap-3">
                     <Button onClick={() => void checkout("starter")} loading={busy}>
-                      Upgrade to Basic (₹499/mo)
+                      Upgrade to Basic ($6/mo)
                     </Button>
                     <Button variant="secondary" onClick={() => void checkout("pro")} loading={busy}>
-                      Upgrade to Pro (₹999/mo)
+                      Upgrade to Pro ($12/mo)
                     </Button>
                     <Button variant="secondary" onClick={() => void checkout("business")} loading={busy}>
                       Upgrade to Business (unlimited)

@@ -19,12 +19,12 @@ PLAN_TO_PRICE_ID = {
     "business": lambda: settings.stripe_business_price_id,
 }
 
-# Required monthly INR prices in paise. These are checked against Stripe at checkout
+# Required monthly USD prices in cents. These are checked against Stripe at checkout
 # so a misconfigured Price ID cannot silently charge the wrong plan amount.
 PLAN_PRICING = {
-    "starter": {"label": "Basic", "amount": 49900, "currency": "inr", "interval": "month"},
-    "pro": {"label": "Pro", "amount": 99900, "currency": "inr", "interval": "month"},
-    "business": {"label": "Business", "amount": 199900, "currency": "inr", "interval": "month"},
+    "starter": {"label": "Basic", "amount": 600, "currency": "usd", "interval": "month"},
+    "pro": {"label": "Pro", "amount": 1200, "currency": "usd", "interval": "month"},
+    "business": {"label": "Business", "amount": 2400, "currency": "usd", "interval": "month"},
 }
 
 
@@ -42,7 +42,7 @@ def plan_from_price_id(price_id: str | None) -> str:
 def validate_stripe_price_for_plan(plan: str, price_id: str) -> None:
     """Fail closed when a Stripe Price ID does not match the configured plan price.
 
-    This prevents an environment-variable mistake such as assigning the Basic ₹499
+    This prevents an environment-variable mistake such as assigning the Basic $6
     Price ID to STRIPE_PRO_PRICE_ID from charging the wrong amount.
     """
     expected = PLAN_PRICING.get(plan)
@@ -73,26 +73,15 @@ def validate_stripe_price_for_plan(plan: str, price_id: str) -> None:
         raise ValueError(f"Stripe price for {expected['label']} is not active.")
     if get_value(remote, "unit_amount") != expected["amount"]:
         raise ValueError(
-            f"Stripe price mismatch for {expected['label']}: expected ₹{expected['amount'] / 100:.0f}/month."
+            f"Stripe price mismatch for {expected['label']}: expected ${expected['amount'] / 100:.0f}/month."
         )
     if str(get_value(remote, "currency", "")).lower() != expected["currency"]:
-        raise ValueError(f"Stripe currency mismatch for {expected['label']}: expected INR.")
+        raise ValueError(f"Stripe currency mismatch for {expected['label']}: expected USD.")
 
     recurring = get_value(remote, "recurring") or {}
     interval = get_value(recurring, "interval")
     if interval != expected["interval"]:
         raise ValueError(f"Stripe billing interval mismatch for {expected['label']}: expected monthly.")
-
-
-def plan_from_price_id(price_id: str | None) -> str:
-    """Map a configured Stripe price ID to an internal plan name."""
-    if price_id and price_id == settings.stripe_starter_price_id:
-        return "starter"
-    if price_id and price_id == settings.stripe_pro_price_id:
-        return "pro"
-    if price_id and price_id == settings.stripe_business_price_id:
-        return "business"
-    return ""
 
 
 def get_stripe_client() -> stripe.StripeClient:

@@ -9,7 +9,7 @@ from app.db.base import Base
 
 CURRENCIES = ("USD", "CAD", "INR", "GBP", "AUD")
 
-TEMPLATE_TYPES = ("default", "classic", "modern", "minimal", "executive", "creative", "custom_docx")
+TEMPLATE_TYPES = ("classic", "modern", "minimal", "executive", "creative", "custom_docx")
 
 
 class LogoFile(Base):
@@ -67,7 +67,7 @@ class BusinessProfile(Base):
     # PDFs use the built-in professional QuoteFlow template; "custom_docx" means
     # the uploaded DOCX file is filled with quote data and converted to PDF.
     template_type: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="default", server_default="default"
+        String(20), nullable=False, default="classic", server_default="classic"
     )
     # Legacy PDF/PNG/JPG template columns — preserved in the database for data
     # safety but no longer used by new code (replaced by custom_docx_*).

@@ -5,10 +5,10 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteNav } from "@/components/SiteNav";
 
 const plans = [
-  { name: "Free", price: "₹0", tagline: "For trying QuoteFlow AI", features: ["Up to 3 quotes/month", "25 customers", "10 AI assists/month", "Secure share links", "PDF downloads"], cta: "Start free", href: "/signup" },
-  { name: "Basic", price: "₹499", highlight: false, tagline: "For freelancers and small businesses", features: ["200 quotes/month", "Unlimited customers", "200 AI assists/month", "Public quote links", "Basic branding"], cta: "Get Basic", href: "/signup?plan=starter" },
-  { name: "Pro", price: "₹999", highlight: true, tagline: "For businesses ready to scale", features: ["1,000 quotes/month", "Unlimited customers", "1,000 AI assists/month", "Advanced dashboard", "Everything in Basic"], cta: "Get Pro", href: "/signup?plan=pro" },
-  { name: "Business", price: "₹1,999", tagline: "For teams and high-volume operations", features: ["Unlimited quotes", "Unlimited AI assists", "Unlimited customers", "Advanced dashboard", "Priority support", "Business-ready workflows"], cta: "Get Business", href: "/signup?plan=business" },
+  { name: "Free", price: "$0", tagline: "For trying QuoteFlow AI", features: ["Up to 3 quotes/month", "25 customers", "10 AI assists/month", "Secure share links", "PDF downloads"], cta: "Start free", href: "/signup" },
+  { name: "Basic", price: "$6", highlight: false, tagline: "For freelancers and small businesses", features: ["200 quotes/month", "Unlimited customers", "200 AI assists/month", "Public quote links", "Basic branding"], cta: "Get Basic", href: "/signup?plan=starter" },
+  { name: "Pro", price: "$12", highlight: true, tagline: "For businesses ready to scale", features: ["1,000 quotes/month", "Unlimited customers", "1,000 AI assists/month", "Advanced dashboard", "Everything in Basic"], cta: "Get Pro", href: "/signup?plan=pro" },
+  { name: "Business", price: "$24", tagline: "For teams and high-volume operations", features: ["Unlimited quotes", "Unlimited AI assists", "Unlimited customers", "Advanced dashboard", "Priority support", "Business-ready workflows"], cta: "Get Business", href: "/signup?plan=business" },
 ];
 
 export default function PricingPage() {

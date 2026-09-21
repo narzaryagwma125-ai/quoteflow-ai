@@ -19,9 +19,9 @@ const steps = [
 ];
 
 const plans = [
-  { name: "Basic", price: "₹499", description: "For freelancers and small businesses", features: ["200 quotes/month", "200 AI assists/month", "Unlimited customers", "Secure quote links"], href: "/signup?plan=starter" },
-  { name: "Pro", price: "₹999", description: "For businesses ready to scale", features: ["1,000 quotes/month", "1,000 AI assists/month", "Advanced dashboard", "Everything in Basic"], href: "/signup?plan=pro", popular: true },
-  { name: "Business", price: "₹1,999", description: "For teams and high-volume work", features: ["Unlimited quotes", "Unlimited AI assists", "Unlimited customers", "Priority support"], href: "/signup?plan=business" },
+  { name: "Basic", price: "$6", description: "For freelancers and small businesses", features: ["200 quotes/month", "200 AI assists/month", "Unlimited customers", "Secure quote links"], href: "/signup?plan=starter" },
+  { name: "Pro", price: "$12", description: "For businesses ready to scale", features: ["1,000 quotes/month", "1,000 AI assists/month", "Advanced dashboard", "Everything in Basic"], href: "/signup?plan=pro", popular: true },
+  { name: "Business", price: "$24", description: "For teams and high-volume work", features: ["Unlimited quotes", "Unlimited AI assists", "Unlimited customers", "Priority support"], href: "/signup?plan=business" },
 ];
 
 function Check() {

@@ -39,18 +39,9 @@ def _engine_url_and_connect_args(database_url: str) -> tuple[URL, dict]:
     sslmode = str(query.pop("sslmode", "") or "").lower()
     query.pop("channel_binding", None)
 
-    # Configure TLS explicitly for asyncpg instead of through the URL. Preserve
-    # the requested mode as a string (asyncpg accepts "require", "verify-full",
-    # etc.) so nothing is lost in translation; only "disable" becomes False.
-    ssl_query = str(query.pop("ssl", "") or "").lower()
-    ssl_value = ssl_query or sslmode
-    if ssl_value == "disable":
-        connect_args["ssl"] = False
-    elif ssl_value:
-        connect_args["ssl"] = ssl_value
-    else:
-        # No TLS option given: default to a TLS connection for PostgreSQL.
-        connect_args["ssl"] = True
+    # Configure TLS explicitly for asyncpg instead of through the URL.
+    query.pop("ssl", None)
+    connect_args["ssl"] = sslmode != "disable"
 
     return url.set(query=query), connect_args
 
