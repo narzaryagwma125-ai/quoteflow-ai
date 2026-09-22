@@ -28,7 +28,7 @@ async def me(
         email=user.email,
         is_email_verified=user.is_email_verified,
         plan=usage["plan"],
-        subscription_status=usage["subscription_status"],
+        subscription_status=usage["status"],
         has_business_profile=has_profile,
         trial_active=usage["trial_active"],
         trial_expired=usage["trial_expired"],
