@@ -290,7 +290,7 @@ export default function BusinessPage() {
     try {
       const ts = await api<TemplateSettings>("/business-profile/template", { method: "DELETE" });
       setTemplate(ts);
-      setSelectedType("default");
+      setSelectedType("classic");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete template.");
     } finally {
