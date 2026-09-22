@@ -224,7 +224,7 @@ async def get_usage_summary(db: AsyncSession, user: User) -> dict:
 
     return {
         "plan": plan_name,
-        "subscription_status": subscription.status if subscription else plan_name,
+        "status": subscription.status if subscription else plan_name,
         "current_period_start": subscription.current_period_start if subscription else None,
         "current_period_end": subscription.current_period_end if subscription else None,
         "cancel_at_period_end": subscription.cancel_at_period_end if subscription else False,
