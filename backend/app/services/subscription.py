@@ -147,15 +147,29 @@ async def get_subscription(db: AsyncSession, user_id: int) -> Subscription | Non
 
 
 def effective_plan(subscription: Subscription | None) -> str:
-    """Effective plan name given subscription row.
-
-    Free users / expired / non-active subscriptions fall back to 'free'.
-    """
+    """Return the effective plan while paid access is still valid."""
     if subscription is None:
         return "free"
-    if subscription.status not in ACTIVE_STATUSES:
+
+    if subscription.plan not in PLANS:
         return "free"
-    return subscription.plan if subscription.plan in PLANS else "free"
+
+    if subscription.status in ACTIVE_STATUSES:
+        return subscription.plan
+
+    # A canceled subscription remains usable until the paid period ends.
+    if (
+        subscription.status in {"canceled", "cancelled"}
+        and subscription.current_period_end is not None
+    ):
+        period_end = subscription.current_period_end
+        if period_end.tzinfo is None:
+            period_end = period_end.replace(tzinfo=UTC)
+
+        if datetime.now(UTC) < period_end:
+            return subscription.plan
+
+    return "free"
 
 
 async def current_plan(db: AsyncSession, user_id: int) -> tuple[str, Subscription | None]:
