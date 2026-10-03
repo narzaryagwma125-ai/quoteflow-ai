@@ -23,7 +23,7 @@ if database_url.startswith("postgres://"):
 elif database_url.startswith("postgresql://"):
     database_url = "postgresql+asyncpg://" + database_url[len("postgresql://"):]
 parts = urlsplit(database_url)
-query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key != "sslmode"]
+query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key not in {"sslmode", "channel_binding"}]
 database_url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
@@ -67,6 +67,7 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+
 
 
 
