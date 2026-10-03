@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request, Response
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, verify_origin
@@ -89,21 +89,37 @@ async def signup(
     verify_origin(request)
 
     normalized_email = payload.email.strip().lower()
-    existing = await db.execute(select(User).where(User.email == normalized_email))
-    if existing.scalar_one_or_none() is not None:
-        # Do not reveal that the account exists.
-        raise_bad_request = bad_request("Could not create account.")
-        raise raise_bad_request
+    existing = (await db.execute(select(User).where(User.email == normalized_email))).scalar_one_or_none()
+
+    if existing is not None and existing.is_email_verified:
+        raise bad_request("Account already exists. Please log in instead.")
 
     verification_required = settings.email_verification_required
-    user = User(
-        email=normalized_email,
-        password_hash=hash_password(payload.password),
-        is_active=True,
-        is_email_verified=not verification_required,
-    )
-    db.add(user)
-    await db.flush()
+
+    if existing is None:
+        user = User(
+            email=normalized_email,
+            password_hash=hash_password(payload.password),
+            is_active=True,
+            is_email_verified=not verification_required,
+        )
+        db.add(user)
+        await db.flush()
+    else:
+        # Unverified sign-up that never completed: reuse the pending account
+        # instead of duplicating it, so subscriptions, usage and the trial
+        # window derived from created_at are all left untouched.
+        user = existing
+        user.password_hash = hash_password(payload.password)
+        # Retire verification links already mailed out for this account.
+        await db.execute(
+            update(EmailVerificationToken)
+            .where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+            .values(used_at=datetime.now(UTC))
+        )
 
     verification_token: str | None = None
     if verification_required:

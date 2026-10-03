@@ -33,11 +33,134 @@ async def test_signup_creates_account_and_sets_cookie(client):
 
 
 @pytest.mark.asyncio
-async def test_signup_duplicate_email_generic_error(client):
+async def test_signup_verified_duplicate_email_rejected(client):
     await create_user("dup@example.com")
     res = await signup(client, "dup@example.com")
     assert res.status_code == 400
-    assert "could not create account" in res.json()["detail"].lower()
+    assert res.json()["detail"] == "Account already exists. Please log in instead."
+
+
+@pytest.mark.asyncio
+async def test_signup_unverified_duplicate_reuses_account(client, monkeypatch):
+    from sqlalchemy import select
+
+    from app.api import auth as auth_api
+    from app.core.config import settings
+    from app.db.session import async_session_factory
+    from app.models.token import EmailVerificationToken
+    from app.models.user import User
+
+    sent = []
+
+    async def _record(to_addr, subject, text, html):
+        sent.append(to_addr)
+
+    monkeypatch.setattr(settings, "email_verification_required", True)
+    monkeypatch.setattr(auth_api, "send_email", _record)
+
+    user = await create_user("retry@example.com", is_email_verified=False)
+
+    # First, unverified sign-up leaves a stale, unused verification token behind.
+    async with async_session_factory() as db:
+        stale = "stale-verification-token"
+        db.add(
+            EmailVerificationToken(
+                user_id=user.id,
+                token_hash=hash_token(stale),
+                expires_at=datetime.now(UTC) + timedelta(hours=1),
+            )
+        )
+        await db.commit()
+
+    original_id = user.id
+    original_created_at = user.created_at
+
+    res = await signup(client, "retry@example.com", password="brand-new-password-789")
+    assert res.status_code == 201, res.text
+    assert res.json()["user"]["email"] == "retry@example.com"
+    assert client.cookies.get("quoteflow_session")
+
+    async with async_session_factory() as db:
+        rows = (await db.execute(select(User))).scalars().all()
+        assert len(rows) == 1  # no duplicate account
+        reused = rows[0]
+        assert reused.id == original_id
+        assert reused.is_email_verified is False
+        # Account/trial history untouched: created_at drives the trial window.
+        assert reused.created_at == original_created_at
+        assert verify_password("brand-new-password-789", reused.password_hash) is True
+
+        tokens = (
+            await db.execute(
+                select(EmailVerificationToken).where(EmailVerificationToken.user_id == reused.id)
+            )
+        ).scalars().all()
+        assert len(tokens) == 2
+        stale_row = next(t for t in tokens if t.token_hash == hash_token(stale))
+        assert stale_row.used_at is not None  # previous link invalidated
+        fresh_row = next(t for t in tokens if t.id != stale_row.id)
+        assert fresh_row.used_at is None  # fresh link still usable
+
+    assert sent == ["retry@example.com"]  # verification email sent again
+
+    # The stale link no longer verifies anything.
+    res_stale = await client.post("/api/auth/verify-email", json={"token": stale})
+    assert res_stale.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_signup_unverified_duplicate_new_token_completes_verification(client, monkeypatch):
+    import re
+
+    from sqlalchemy import select
+
+    from app.api import auth as auth_api
+    from app.core.config import settings
+    from app.db.session import async_session_factory
+    from app.models.user import User
+
+    sent: list[tuple[str, str]] = []
+
+    async def _record(to_addr, subject, text, html):
+        sent.append((to_addr, text))
+
+    monkeypatch.setattr(settings, "email_verification_required", True)
+    monkeypatch.setattr(auth_api, "send_email", _record)
+    await create_user("verifyretry@example.com", is_email_verified=False)
+
+    res = await signup(client, "verifyretry@example.com", password="second-password-456")
+    assert res.status_code == 201, res.text
+
+    async with async_session_factory() as db:
+        reused = (
+            await db.execute(select(User).where(User.email == "verifyretry@example.com"))
+        ).scalar_one()
+        assert verify_password("second-password-456", reused.password_hash) is True
+
+    assert len(sent) == 1
+    fresh_token = re.search(r"token=([A-Za-z0-9_-]+)", sent[0][1]).group(1)
+
+    # The freshly mailed link verifies the reused account.
+    res_verify = await client.post("/api/auth/verify-email", json={"token": fresh_token})
+    assert res_verify.status_code == 200, res_verify.text
+
+    async with async_session_factory() as db:
+        reused = (
+            await db.execute(select(User).where(User.email == "verifyretry@example.com"))
+        ).scalar_one()
+        assert reused.is_email_verified is True
+
+    # A later sign-up attempt is now rejected outright.
+    res_again = await signup(client, "verifyretry@example.com", password="third-password-789")
+    assert res_again.status_code == 400
+    assert res_again.json()["detail"] == "Account already exists. Please log in instead."
+
+    # Password was replaced by the retry, not by the rejected attempt.
+    async with async_session_factory() as db:
+        reused = (
+            await db.execute(select(User).where(User.email == "verifyretry@example.com"))
+        ).scalar_one()
+        assert verify_password("second-password-456", reused.password_hash) is True
 
 
 @pytest.mark.asyncio
