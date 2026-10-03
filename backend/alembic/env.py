@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from logging.config import fileConfig
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 from alembic import context
 from sqlalchemy import pool
@@ -21,6 +22,9 @@ if database_url.startswith("postgres://"):
     database_url = "postgresql+asyncpg://" + database_url[len("postgres://"):]
 elif database_url.startswith("postgresql://"):
     database_url = "postgresql+asyncpg://" + database_url[len("postgresql://"):]
+parts = urlsplit(database_url)
+query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key != "sslmode"]
+database_url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
@@ -63,4 +67,6 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+
+
 
