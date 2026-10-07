@@ -176,8 +176,9 @@ def validate_captured_order(
     if custom_id != expected_custom_id:
         return False, "PayPal order does not belong to this checkout."
 
-    amount = ((unit.get("amount") or {}).get("value") or "")
-    currency = ((unit.get("amount") or {}).get("currency_code") or "")
+    captured_amount = captures[0].get("amount") or {}
+    amount = captured_amount.get("value") or ""
+    currency = captured_amount.get("currency_code") or ""
 
     try:
         actual = Decimal(str(amount))
@@ -221,6 +222,4 @@ def verify_webhook_signature(
 
 def payload_hash(raw_body: bytes) -> str:
     return hashlib.sha256(raw_body).hexdigest()
-
-
 
