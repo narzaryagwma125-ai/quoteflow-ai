@@ -166,9 +166,15 @@ def validate_captured_order(
         return False, "Unexpected PayPal purchase unit."
 
     unit = units[0]
-    expected_custom_id = f"qf:{user_id}:{plan}"
-    if unit.get("custom_id") != expected_custom_id:
-        return False, "PayPal order does not belong to this checkout."
+expected_custom_id = f"qf:{user_id}:{plan}"
+
+captures = ((unit.get("payments") or {}).get("captures") or [])
+if len(captures) != 1:
+    return False, "Unexpected PayPal capture."
+
+custom_id = captures[0].get("custom_id")
+if custom_id != expected_custom_id:
+    return False, "PayPal order does not belong to this checkout."
 
     amount = ((unit.get("amount") or {}).get("value") or "")
     currency = ((unit.get("amount") or {}).get("currency_code") or "")
