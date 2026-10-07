@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request
@@ -199,6 +201,8 @@ async def capture_paypal(
             captured = get_order(payload.order_id)
         except (ValueError, RuntimeError):
             raise bad_request(str(exc)) from exc
+
+    logging.info("PayPal captured order response: %s", captured)
 
     ok, reason = validate_captured_order(
         captured,
