@@ -1,4 +1,4 @@
-"""PayPal international checkout using the Orders v2 API.
+﻿"""PayPal international checkout using the Orders v2 API.
 
 This module deliberately uses PayPal's standard one-time Orders API.
 PayPal's current custom recurring Subscriptions API is restricted to
@@ -166,18 +166,19 @@ def validate_captured_order(
         return False, "Unexpected PayPal purchase unit."
 
     unit = units[0]
-expected_custom_id = f"qf:{user_id}:{plan}"
+    expected_custom_id = f"qf:{user_id}:{plan}"
 
-captures = ((unit.get("payments") or {}).get("captures") or [])
-if len(captures) != 1:
-    return False, "Unexpected PayPal capture."
+    captures = ((unit.get("payments") or {}).get("captures") or [])
+    if len(captures) != 1:
+        return False, "Unexpected PayPal capture."
 
-custom_id = captures[0].get("custom_id")
-if custom_id != expected_custom_id:
-    return False, "PayPal order does not belong to this checkout."
+    custom_id = captures[0].get("custom_id")
+    if custom_id != expected_custom_id:
+        return False, "PayPal order does not belong to this checkout."
 
     amount = ((unit.get("amount") or {}).get("value") or "")
     currency = ((unit.get("amount") or {}).get("currency_code") or "")
+
     try:
         actual = Decimal(str(amount))
     except (InvalidOperation, ValueError):
@@ -187,7 +188,6 @@ if custom_id != expected_custom_id:
         return False, "PayPal amount or currency does not match the selected plan."
 
     return True, ""
-
 
 def verify_webhook_signature(
     *,
@@ -221,5 +221,6 @@ def verify_webhook_signature(
 
 def payload_hash(raw_body: bytes) -> str:
     return hashlib.sha256(raw_body).hexdigest()
+
 
 
